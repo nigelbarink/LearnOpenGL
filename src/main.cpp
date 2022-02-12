@@ -253,15 +253,9 @@ int main() {
 
       
       // Pass a matrix to the shader
-      unsigned int ModelMatrixLoc = glGetUniformLocation(shader.ID, "model");
-      glUniformMatrix4fv(ModelMatrixLoc, 1, GL_FALSE, glm::value_ptr(model));
+      shader.setMat4("view", view);
 
-      unsigned int ViewMatrixLoc = glGetUniformLocation(shader.ID, "view");
-      glUniformMatrix4fv(ViewMatrixLoc, 1, GL_FALSE, &view[0][0]);
-      
-      unsigned int ProjectionMatrixLoc = glGetUniformLocation(shader.ID, "projection");
-      glUniformMatrix4fv(ProjectionMatrixLoc, 1, GL_FALSE, &projection[0][0]);
-
+      shader.setMat4("projection", projection);
 
 
       glBindVertexArray(VAO);
