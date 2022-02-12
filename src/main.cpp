@@ -11,19 +11,13 @@
 
 #include "stb_image.h"
 #include "shader.h"
-
- // stationary camera vectors
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-
+#include "camera.h"
 
 float deltaTime = 0.0f;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = 400, lastY = 300;
-float yaw =0 , pitch =0 ;
-float fov = 45;
 bool firstMouse  = true;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
@@ -36,14 +30,13 @@ void processInput( GLFWwindow* window){
 
    const float CameraSpeed = 2.5f * deltaTime; 
    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-      cameraPos += CameraSpeed * cameraFront;
+      camera.ProcessKeyboard(FORWARD, deltaTime);
    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-      cameraPos -= CameraSpeed * cameraFront;
+      camera.ProcessKeyboard(BACKWARD, deltaTime);
    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-      cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * CameraSpeed;
+      camera.ProcessKeyboard(LEFT, deltaTime);
    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-      cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * CameraSpeed;
-
+      camera.ProcessKeyboard(RIGHT,deltaTime);
 }
 
 
@@ -56,37 +49,16 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos){
    }
    float xoffset = xpos - lastX;
    float yoffset = lastY - ypos; // reversed since y-coordinates range from bottom to top
+   
    lastX = xpos;
    lastY = ypos;
 
-   const float sensitivity = 0.1f;
-   xoffset *= sensitivity;
-   yoffset *= sensitivity;
-
-   yaw   += xoffset;
-   pitch += yoffset; 
-
-   if(pitch > 89.0f)
-      pitch =  89.0f;
-   if(pitch < -89.0f)
-      pitch = -89.0f;
-
-   
-
-   glm::vec3 direction;
-   direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-   direction.y = sin(glm::radians(pitch));
-   direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-   cameraFront = glm::normalize(direction);
+   camera.ProcessMouseMovement(xoffset,yoffset);
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    fov -= (float)yoffset;
-    if (fov < 1.0f)
-        fov = 1.0f;
-    if (fov > 45.0f)
-        fov = 45.0f; 
+   camera.ProcessMouseScroll(yoffset);
 }
 
 int main() {
@@ -163,37 +135,6 @@ int main() {
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
-  /*  unsigned int indices[] = {
-      0,1,3, // first triangle
-      1,2,3  // second triangle
-   }; */
-
-  
-
-   // Vertex buffer objects!!
-  /*  unsigned int VBO, VAO, EBO;
-   glGenVertexArrays(1, &VAO);
-   glGenBuffers(1, &VBO);
-   glGenBuffers(1, &EBO);
-
-   glBindVertexArray(VAO);
-
-   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW); */
-
-  /*  // Position attribute
-   glVertexAttribPointer(0,3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-   glEnableVertexAttribArray(0);
-   // Color attribute
-   glVertexAttribPointer(1,3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3* sizeof(float)));
-   glEnableVertexAttribArray(1);
-
-   // texture attribute
-   glVertexAttribPointer(2,2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6*sizeof(float)));
-   glEnableVertexAttribArray(2); */
 
    unsigned int VBO, VAO;
    glGenVertexArrays(1, &VAO);
@@ -265,12 +206,6 @@ int main() {
    }
    
    stbi_image_free(data2);
-
-
- 
-   // WireFrame mode
-   // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); 
-
    
 
    shader.use();
@@ -323,20 +258,12 @@ int main() {
       glm::mat4 view          = glm::mat4(1.0f);
       glm::mat4 projection    = glm::mat4(1.0f);
       model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
-        
-      // orbiting camera vectors
-      const float radius = 10.0f;
-      float camX = sin(glfwGetTime()) * radius;
-      float camZ = cos(glfwGetTime()) * radius;
-     
-      view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
-      projection = glm::perspective(glm::radians(fov), (float)800 / (float)600, 0.1f, 100.0f);
-
       
       // Pass a matrix to the shader
+      view = camera.GetViewMatrix();
       shader.setMat4("view", view);
 
+      projection = glm::perspective(glm::radians(camera.Zoom), (float)800 / (float)600, 0.1f, 100.0f);
       shader.setMat4("projection", projection);
 
 
