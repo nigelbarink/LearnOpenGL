@@ -12,6 +12,19 @@
 #include "stb_image.h"
 #include "shader.h"
 
+ // stationary camera vectors
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+
+float deltaTime = 0.0f;	// Time between current frame and last frame
+float lastFrame = 0.0f; // Time of last frame
+
+float lastX = 400, lastY = 300;
+float yaw =0 , pitch =0 ;
+float fov = 45;
+bool firstMouse  = true;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
    glViewport(0,0, width, height);
@@ -21,6 +34,59 @@ void processInput( GLFWwindow* window){
    if(glfwGetKey(window,GLFW_KEY_ESCAPE) == GLFW_PRESS)
       glfwSetWindowShouldClose(window, true);
 
+   const float CameraSpeed = 2.5f * deltaTime; 
+   if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+      cameraPos += CameraSpeed * cameraFront;
+   if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+      cameraPos -= CameraSpeed * cameraFront;
+   if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+      cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * CameraSpeed;
+   if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+      cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * CameraSpeed;
+
+}
+
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos){
+   if (firstMouse) // initially set to true
+   {
+      lastX = xpos;
+      lastY = ypos;
+      firstMouse = false;
+   }
+   float xoffset = xpos - lastX;
+   float yoffset = lastY - ypos; // reversed since y-coordinates range from bottom to top
+   lastX = xpos;
+   lastY = ypos;
+
+   const float sensitivity = 0.1f;
+   xoffset *= sensitivity;
+   yoffset *= sensitivity;
+
+   yaw   += xoffset;
+   pitch += yoffset; 
+
+   if(pitch > 89.0f)
+      pitch =  89.0f;
+   if(pitch < -89.0f)
+      pitch = -89.0f;
+
+   
+
+   glm::vec3 direction;
+   direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+   direction.y = sin(glm::radians(pitch));
+   direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+   cameraFront = glm::normalize(direction);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    fov -= (float)yoffset;
+    if (fov < 1.0f)
+        fov = 1.0f;
+    if (fov > 45.0f)
+        fov = 45.0f; 
 }
 
 int main() {
@@ -224,9 +290,18 @@ int main() {
       glm::vec3(-1.3f,  1.0f, -1.5f)  
    };
 
+  
+   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); 
+   glfwSetCursorPosCallback(window, mouse_callback); 
+   glfwSetScrollCallback(window, scroll_callback);
+
    glEnable(GL_DEPTH_TEST);
    while(!glfwWindowShouldClose(window))
    {
+      float currentFrame = glfwGetTime();
+      deltaTime = currentFrame - lastFrame;
+      lastFrame = currentFrame; 
+
       processInput(window);
       
 
@@ -243,13 +318,20 @@ int main() {
       glBindTexture(GL_TEXTURE_2D, texture2);
 
 
-       // create transformations
-        glm::mat4 model         = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-        glm::mat4 view          = glm::mat4(1.0f);
-        glm::mat4 projection    = glm::mat4(1.0f);
-        model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
-        view  = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-        projection = glm::perspective(glm::radians(45.0f), (float)800 / (float)600, 0.1f, 100.0f);
+      // create transformations
+      glm::mat4 model         = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+      glm::mat4 view          = glm::mat4(1.0f);
+      glm::mat4 projection    = glm::mat4(1.0f);
+      model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
+        
+      // orbiting camera vectors
+      const float radius = 10.0f;
+      float camX = sin(glfwGetTime()) * radius;
+      float camZ = cos(glfwGetTime()) * radius;
+     
+      view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
+      projection = glm::perspective(glm::radians(fov), (float)800 / (float)600, 0.1f, 100.0f);
 
       
       // Pass a matrix to the shader
