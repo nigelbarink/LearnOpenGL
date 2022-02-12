@@ -3,10 +3,10 @@ CFLAGS = -std=c++17 -O2
 LDFLAGS = -lglfw3 -lGL -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi
 OUT_NAME = LearnOpenGL
 
-build: src/main.cpp  src/shader.h
+build: src/*.cpp  src/*.h
 	mkdir -p build/
-	$(CC) $(CFLAGS) -Ilib/GLAD/include -Ilib/glfw/include -o build/$(OUT_NAME) lib/GLAD/src/glad.c src/main.cpp $(LDFLAGS)
+	$(CC) $(CFLAGS) -Ilib/GLAD/include -Ilib/glfw/include -o build/$(OUT_NAME) lib/GLAD/src/glad.c src/*.cpp $(LDFLAGS)
 
 
-run: build/$(OUT_NAME)
+run: build build/$(OUT_NAME)
 	./build/$(OUT_NAME)
