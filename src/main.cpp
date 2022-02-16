@@ -149,6 +149,13 @@ glm::vec3 cubePositions[] = {
     glm::vec3(-1.3f,  1.0f, -1.5f)
 };
 
+glm::vec3 lightPositions[] = {
+	glm::vec3( 0.7f,  0.2f,  2.0f),
+	glm::vec3( 2.3f, -3.3f, -4.0f),
+	glm::vec3(-4.0f,  2.0f, -12.0f),
+	glm::vec3( 0.0f,  0.0f, -3.0f)
+};  
+
    unsigned int VBO, VAO;
    glGenVertexArrays(1, &VAO);
    glGenBuffers(1, &VBO);
@@ -257,21 +264,71 @@ while(!glfwWindowShouldClose(window))
    shader.setFloat("material.shininess", 32.0f);
 
 
+/*
+Directional light
+   vec3 direction;
 
-   shader.setVec3("light.position", camera.Position);
-   shader.setVec3("light.direction", camera.Front);
-   shader.setFloat("light.cutoff", glm::cos(glm::radians(12.5f)));
-   shader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+*/
 
-   shader.setVec3("light.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
-   shader.setVec3("light.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
-   shader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+   shader.setVec3("dirlight.direction", glm::vec3(1.0f,0.0f, 2.0f));
+
+  
+   shader.setVec3("dirlight.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
+   shader.setVec3("dirlight.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
+   shader.setVec3("dirlight.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+
+
+
+
+/*
+   Point Lights;
+*/
+
+
+
+   shader.setVec3("PointLights[0].position", glm::vec3( 0.7f,  0.2f,  2.0f));
+   shader.setVec3("PointLights[1].position", glm::vec3( 2.3f, -3.3f, -4.0f));
+   shader.setVec3("PointLights[2].position", glm::vec3(-4.0f,  2.0f, -12.0f));
+   shader.setVec3("PointLights[3].position", glm::vec3( 0.0f,  0.0f, -3.0f));
    
 
+   shader.setVec3("PointLights[0].ambient", glm::vec3(0.2f, 0.2f, 0.2f));
+   shader.setVec3("PointLights[0].diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
+   shader.setVec3("PointLights[0].specular", glm::vec3(1.0f, 1.0f, 1.0f));
 
-   shader.setFloat("light.constant", 1.0f);
-   shader.setFloat("light.linear", 0.09f);
-   shader.setFloat("light.quadratic", 0.032f);
+   shader.setVec3("PointLights[1].ambient", glm::vec3(0.2f, 0.2f, 0.2f));
+   shader.setVec3("PointLights[1].diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
+   shader.setVec3("PointLights[1].specular", glm::vec3(1.0f, 1.0f, 1.0f));
+
+   shader.setVec3("PointLights[2].ambient", glm::vec3(0.2f, 0.2f, 0.2f));
+   shader.setVec3("PointLights[2].diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
+   shader.setVec3("PointLights[2].specular", glm::vec3(1.0f, 1.0f, 1.0f));
+
+   shader.setVec3("PointLights[3].ambient", glm::vec3(0.2f, 0.2f, 0.2f));
+   shader.setVec3("PointLights[3].diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
+   shader.setVec3("PointLights[3].specular", glm::vec3(1.0f, 1.0f, 1.0f));
+
+
+
+
+   shader.setFloat("PointLights[0].constant", 1.0f);
+   shader.setFloat("PointLights[1].constant", 1.0f);
+   shader.setFloat("PointLights[2].constant", 1.0f);
+   shader.setFloat("PointLights[3].constant", 1.0f);
+
+   shader.setFloat("PointLights[0].linear", 0.09f);
+   shader.setFloat("PointLights[1].linear", 0.09f);
+   shader.setFloat("PointLights[2].linear", 0.09f);
+   shader.setFloat("PointLights[3].linear", 0.09f);
+   
+   
+   shader.setFloat("PointLights[0].quadratic", 0.032f);
+   shader.setFloat("PointLights[1].quadratic", 0.032f);
+   shader.setFloat("PointLights[2].quadratic", 0.032f);
+   shader.setFloat("PointLights[3].quadratic", 0.032f);
 
    shader.setVec3("viewPos", camera.Position);
 
@@ -304,6 +361,7 @@ while(!glfwWindowShouldClose(window))
 
 
 
+
    // draw lights
    lightshader.use();
    lightshader.setMat4("view", view);
@@ -313,17 +371,24 @@ while(!glfwWindowShouldClose(window))
    model = glm::translate(model, lightpos);
    model = glm::scale(model, glm::vec3(0.2f));
 
-   lightshader.setMat4("model", model);
 
-   glBindVertexArray(lightVAO);
-   glDrawArrays(GL_TRIANGLES, 0, 36);
+   for ( int i = 0; i < 4 ; i ++){
+   
+      model = glm::translate(model, lightPositions[i]);
+      lightshader.setMat4("model", model);
 
+      glBindVertexArray(lightVAO);
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+
+   }
+   
    
    glfwSwapBuffers(window);
    glfwPollEvents();
 }
 
 glDeleteVertexArrays(1, &VAO);
+glDeleteVertexArrays(1, &lightVAO);
 glDeleteBuffers(1, &VBO);
 
 glfwTerminate();
