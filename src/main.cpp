@@ -265,7 +265,9 @@ while(!glfwWindowShouldClose(window))
    shader.setVec3("light.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
    shader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
    
-
+   shader.setFloat("light.constant", 1.0f);
+   shader.setFloat("light.linear", 0.09f);
+   shader.setFloat("light.quadratic", 0.032f);
 
    shader.setVec3("viewPos", camera.Position);
 
