@@ -258,13 +258,17 @@ while(!glfwWindowShouldClose(window))
 
 
 
-
-   shader.setVec3("light.direction", lightpos);
+   shader.setVec3("light.position", camera.Position);
+   shader.setVec3("light.direction", camera.Front);
+   shader.setFloat("light.cutoff", glm::cos(glm::radians(12.5f)));
+   shader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
 
    shader.setVec3("light.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
    shader.setVec3("light.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
    shader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
    
+
+
    shader.setFloat("light.constant", 1.0f);
    shader.setFloat("light.linear", 0.09f);
    shader.setFloat("light.quadratic", 0.032f);
