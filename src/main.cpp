@@ -85,7 +85,7 @@ int main() {
 
    glViewport(0,0, 800, 600);
    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-   //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); 
+   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); 
    glfwSetCursorPosCallback(window, mouse_callback); 
    glfwSetScrollCallback(window, scroll_callback);
 
@@ -94,41 +94,69 @@ int main() {
 
 
    Shader shader ("shader.vs", "shader.fs");
+   Shader outlineShader("shader.vs","outlineshader.fs");
 
    Model backpack("Models/backpack.obj");
 
 
-
 glEnable(GL_DEPTH_TEST);
+glEnable(GL_STENCIL_TEST);
+glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+///glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 while(!glfwWindowShouldClose(window))
 {
    float currentFrame = glfwGetTime();
    deltaTime = currentFrame - lastFrame;
    lastFrame = currentFrame; 
-
+  // std::cout << "Delta Time: " << deltaTime << std::endl;
    processInput(window);
    
-   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-   shader.use();
 
    glm::mat4 model         = glm::mat4(1.0f); 
-   glm::mat4 view          = glm::mat4(1.0f);
-   glm::mat4 projection    = glm::mat4(1.0f);
    
-   view = camera.GetViewMatrix();
-   projection = glm::perspective(glm::radians(camera.Zoom), (float)800 / (float)600, 0.1f, 100.0f);    
+   glm::mat4 view = camera.GetViewMatrix();
+   glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)800 / (float)600, 0.1f, 100.0f);   
    model = glm::mat4(1.0);
 
-   shader.setMat4("projection", projection);
-   shader.setMat4("view", view);
+
+   glStencilFunc(GL_ALWAYS, 1, 0xff);
+   glStencilMask(0xFF);
+
+   shader.use();
    shader.setMat4("model", model);
+   shader.setMat4("view", view);
+   shader.setMat4("projection", projection);
+
 
    backpack.Draw(shader);
-   
 
+
+   glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+   glStencilMask(0x00);
+   glDisable(GL_DEPTH_TEST);
+
+   outlineShader.use();
+   outlineShader.setMat4("model", model);
+   outlineShader.setMat4("view", view);
+   outlineShader.setMat4("projection", projection);
+   outlineShader.setVec3("outlineColor", glm::vec3(0.28, 0.10, 0.26)); 
+
+   model = glm::scale(model, glm::vec3(1.05f,1.05f, 1.05f));
+  // model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
+   outlineShader.setMat4("model", model);
+
+
+   backpack.Draw(outlineShader);
    
+   glStencilMask(0xFF);
+   glStencilFunc(GL_ALWAYS, 1, 0xFF);   
+   glEnable(GL_DEPTH_TEST); 
+
+
    glfwSwapBuffers(window);
    glfwPollEvents();
 }
