@@ -8,10 +8,15 @@ uniform mat4 view;
 uniform mat4 projection;
 
 out vec2 TexCoords;
+out vec3 Normal;
+out vec3 Position;
 
 
-void main(){
+void main()
+{
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+    Position = vec3(model* vec4(aPos, 1.0));
 
-    gl_Position = projection * view * model * vec4(aPos , 1.0);
     TexCoords = aTexCoords;
+    gl_Position = projection * view * model * vec4(aPos , 1.0);
 }

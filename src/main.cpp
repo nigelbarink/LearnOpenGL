@@ -186,7 +186,7 @@ void Skybox_pass (GLuint& SkyboxVAO, Shader& skyboxShader, Cubemap& skycubemap)
    glDepthMask(GL_TRUE);
 }
 
-void drawScene_pass(Shader& shader,  Model& Object)
+void drawScene_pass(Shader& shader,  Model& Object, Cubemap& skybox)
 {
    //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -194,6 +194,9 @@ void drawScene_pass(Shader& shader,  Model& Object)
 
 
    shader.use();
+
+   shader.setVec3("cameraPos", camera.Position);
+   skybox.Bind();
    shader.setMat4("model", model);
    shader.setMat4("view", view);
    shader.setMat4("projection", projection);
@@ -374,7 +377,7 @@ while(!glfwWindowShouldClose(window))
 
    Skybox_pass(SkyboxVAO, skyboxShader, skybox);
 
-   drawScene_pass(shader,  backpack);
+   drawScene_pass(shader,  backpack, skybox);
 
    outline_pass(outlineShader, backpack);
 
