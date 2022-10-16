@@ -11,6 +11,10 @@
 #include "shader.h"
 #include "camera.h"
 #include "model.h"
+#include "FrameBuffer.hpp"
+#include "RenderBuffer.hpp"
+
+// https://learnopengl.com/Advanced-OpenGL/Framebuffers
 
 float deltaTime = 0.0f;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
@@ -19,7 +23,22 @@ Camera camera(glm::vec3(0.0f, 0.0f, 8.0f));
 float lastX = 400, lastY = 300;
 bool firstMouse  = true;
 
+glm::mat4 model = glm::mat4(1.0f); 
+glm::mat4 view;
+glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)800 / (float)600, 0.1f, 100.0f);   
+  
 glm::vec3 lightpos(-0.2f, -1.0f, -0.3f);
+
+std::vector<float> ScreenVertices = {
+   // vertex ,    uv 
+   -1.0f, 1.0f,   0.0f, 1.0f,
+   -1.0f,-1.0f,   0.0f, 0.0f,
+   1.0f, -1.0f,   1.0f, 0.0f,
+
+   -1.0f, 1.0f,   0.0f, 1.0f,
+   1.0f, -1.0f,   1.0f, 0.0f,
+   1.0f, 1.0f,    1.0f, 1.0f,
+} ;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
    glViewport(0,0, width, height);
@@ -39,7 +58,6 @@ void processInput( GLFWwindow* window){
    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
       camera.ProcessKeyboard(RIGHT,deltaTime);
 }
-
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos){
    if (firstMouse) // initially set to true
@@ -62,9 +80,9 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
    camera.ProcessMouseScroll(yoffset);
 }
 
-int main() {
-   printf("Hello OpenGL!\n");
-   glfwInit();
+GLFWwindow* CreateWindowWithOpenGLContext()
+{
+ glfwInit();
    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -74,13 +92,13 @@ int main() {
    if( window == NULL){
       printf("Failed to create GLFW window!\n");
       glfwTerminate();
-      return -1; 
+      return nullptr; 
    }
    glfwMakeContextCurrent(window);
 
    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
       printf("Failed to initialize GLAD!\n");
-      return -1;
+      return nullptr;
    }
 
    glViewport(0,0, 800, 600);
@@ -89,79 +107,181 @@ int main() {
    glfwSetCursorPosCallback(window, mouse_callback); 
    glfwSetScrollCallback(window, scroll_callback);
 
-   glEnable(GL_DEPTH_TEST);
-   stbi_set_flip_vertically_on_load(true);
+   return window;
 
+}
 
-   Shader shader ("shader.vs", "shader.fs");
-   Shader outlineShader("shader.vs","outlineshader.fs");
-
-   Model backpack("Models/backpack.obj");
-
-
-glEnable(GL_DEPTH_TEST);
-glEnable(GL_STENCIL_TEST);
-glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-///glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-while(!glfwWindowShouldClose(window))
+void drawScene_pass(Shader& shader,  Model& Object)
 {
-   float currentFrame = glfwGetTime();
-   deltaTime = currentFrame - lastFrame;
-   lastFrame = currentFrame; 
-  // std::cout << "Delta Time: " << deltaTime << std::endl;
-   processInput(window);
-   
-   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-
-   glm::mat4 model         = glm::mat4(1.0f); 
-   
-   glm::mat4 view = camera.GetViewMatrix();
-   glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)800 / (float)600, 0.1f, 100.0f);   
-   model = glm::mat4(1.0);
-
-
+   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    glStencilFunc(GL_ALWAYS, 1, 0xff);
    glStencilMask(0xFF);
-
+   
    shader.use();
    shader.setMat4("model", model);
    shader.setMat4("view", view);
    shader.setMat4("projection", projection);
 
+   Object.Draw(shader);
+}
 
-   backpack.Draw(shader);
-
-
+void outline_pass(  Shader& shader,  Model& Object)
+{
    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
    glStencilMask(0x00);
    glDisable(GL_DEPTH_TEST);
 
-   outlineShader.use();
-   outlineShader.setMat4("model", model);
-   outlineShader.setMat4("view", view);
-   outlineShader.setMat4("projection", projection);
-   outlineShader.setVec3("outlineColor", glm::vec3(0.28, 0.10, 0.26)); 
+   shader.use();
+   shader.setMat4("model", model);
+   shader.setMat4("view", view);
+   shader.setMat4("projection", projection);
+   shader.setVec3("outlineColor", glm::vec3(0.28, 0.10, 0.26)); 
 
    model = glm::scale(model, glm::vec3(1.05f,1.05f, 1.05f));
-  // model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
-   outlineShader.setMat4("model", model);
+   shader.setMat4("model", model);
+
+   Object.Draw(shader);
+}
+
+void DrawToScreen( GLuint& VAO, GLuint& ScreenTexture, Shader& shader)
+{
+   // draw to screen
+   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+   glDisable(GL_DEPTH_TEST);
+
+   glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+   glClear(GL_COLOR_BUFFER_BIT);
 
 
-   backpack.Draw(outlineShader);
+   shader.use();
+   shader.setInt("screenTexture",0);
+   glBindVertexArray(VAO);
+   glBindTexture(GL_TEXTURE_2D, ScreenTexture);
+   glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+int main() {
+   printf("Hello OpenGL!\n");
+
+
+   // Setup OpenGL Context
+   GLFWwindow* window = CreateWindowWithOpenGLContext();
+
+   if(window == nullptr)
+      return -1;
+
+   glEnable(GL_DEPTH_TEST);
+   stbi_set_flip_vertically_on_load(true);
+
+   // Load scene resources 
+   Shader shader ("shader.vs", "shader.fs");
+   Shader outlineShader("shader.vs","outlineshader.fs");
+   Shader framebufferShader("Framebuffers.vs", "Framebuffers.fs" );
+
+   Model backpack("Models/backpack.obj");
+
+   // Framebuffer outline effect
+   FrameBuffer outlineFrameBuffer = FrameBuffer();
+   outlineFrameBuffer.Bind();
+
+   // Create a texture attachment (colour attachment)
+   Texture* depthTexture = CreateTexture(800,600);
+  
+   // attach texture to the frame buffer as a colour attachment
+   outlineFrameBuffer.Attach(*depthTexture);
+
+   // Add depth buffer attachment 
+   RenderBuffer outlineRenderBuffer = RenderBuffer();
+   outlineRenderBuffer.Bind();
+
+   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 800, 600);
+   outlineRenderBuffer.Unbind();
+
+   // attach depth buffer to our framebuffer
+   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, outlineRenderBuffer.id);
+   outlineFrameBuffer.Unbind();
+
+   // Post processing 
+   FrameBuffer framebuffer = FrameBuffer();
+   framebuffer.Bind();
+
+   Texture* ColourBuffer = CreateTexture(800,600);
+   framebuffer.Attach(*ColourBuffer);
+
+   RenderBuffer renderbufferObject = RenderBuffer();
+   renderbufferObject.Bind();
+   renderbufferObject.UseDepthAndStencil();
+   renderbufferObject.Unbind();
+
+   framebuffer.Attach(renderbufferObject);
+
+   if(framebuffer.IsComplete() == false ){
+      std::cout << "ERROR::FRAMEBUFFER::Framebuffer is not complete! " << std::endl;
+   }  
+
+   framebuffer.Unbind();
+
+   // Create ScreenVAO
+   GLuint ScreenVAO, VBO;
+   glGenVertexArrays(1, &ScreenVAO);
+   glBindVertexArray(ScreenVAO);
    
+   glGenBuffers(1, &VBO);
+   glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+   glBufferData(GL_ARRAY_BUFFER, ScreenVertices.size() * sizeof(float), &ScreenVertices[0], GL_STATIC_DRAW);
+
+   glEnableVertexAttribArray(0);
+   glVertexAttribPointer(0,2, GL_FLOAT,GL_FALSE, 4 * sizeof(float),(void*) 0 );
+   glEnableVertexAttribArray(1);
+   glVertexAttribPointer(1,2,GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2*sizeof(float)));
+
+
+   glBindVertexArray(0);
+   
+   glEnable(GL_DEPTH_TEST);
+   glEnable(GL_STENCIL_TEST);
+   glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+while(!glfwWindowShouldClose(window))
+{
+   float currentFrame = glfwGetTime();
+   deltaTime = currentFrame - lastFrame;
+   lastFrame = currentFrame; 
+   
+   processInput(window);
+   
+   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+   // Recalculate the Camera's view matrix 
+   view = camera.GetViewMatrix();
+   // Reset the model matrix to an identity matrix
+   model = glm::mat4(1.0f);
+
+
+   framebuffer.Bind();
+   drawScene_pass(shader,  backpack);
+   outline_pass(outlineShader, backpack);
+   
+   // Reset stencil 
    glStencilMask(0xFF);
    glStencilFunc(GL_ALWAYS, 1, 0xFF);   
    glEnable(GL_DEPTH_TEST); 
 
 
+   DrawToScreen(ScreenVAO, ColourBuffer->id, framebufferShader);
+   
    glfwSwapBuffers(window);
    glfwPollEvents();
 }
 
 
+delete ColourBuffer;
+delete depthTexture;
 glfwTerminate();
 
 return 0;
