@@ -143,6 +143,8 @@ GLFWwindow* CreateWindowWithOpenGLContext()
    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+   // multisampling
+   glfwWindowHint(GLFW_SAMPLES, 4);
 
    GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
    if( window == NULL){
@@ -169,9 +171,6 @@ GLFWwindow* CreateWindowWithOpenGLContext()
 
 void Skybox_pass (GLuint& SkyboxVAO, Shader& skyboxShader, Cubemap& skycubemap)
 {
-   //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-   //glClear(GL_COLOR_BUFFER_BIT );
-
    glDepthMask(GL_FALSE);
 
    skyboxShader.use();
@@ -188,11 +187,6 @@ void Skybox_pass (GLuint& SkyboxVAO, Shader& skyboxShader, Cubemap& skycubemap)
 
 void drawScene_pass(Shader& shader,  Model& Object, Cubemap& skybox)
 {
-   //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-   //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
-
    shader.use();
 
    shader.setVec3("cameraPos", camera.Position);
@@ -312,7 +306,6 @@ int main() {
    skybox.loadCubeTextures(faces);
 
    // Create ScreenVAO
-   #pragma region ScreenVAO
    GLuint ScreenVAO, VBO;
    glGenVertexArrays(1, &ScreenVAO);
    glBindVertexArray(ScreenVAO);
@@ -327,10 +320,7 @@ int main() {
    glEnableVertexAttribArray(1);
    glVertexAttribPointer(1,2,GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2*sizeof(float)));
 
-
    glBindVertexArray(0);
-#pragma endregion ScreenVAO
-
 
    // Create SkyboxVAO
    GLuint SkyboxVAO, SkyboxVBO;
@@ -351,6 +341,7 @@ int main() {
    glEnable(GL_DEPTH_TEST);
    glEnable(GL_STENCIL_TEST);
    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+   glEnable(GL_MULTISAMPLE);
 
 //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 while(!glfwWindowShouldClose(window))
