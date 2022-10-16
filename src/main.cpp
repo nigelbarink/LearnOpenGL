@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <cmath>
+#include <vector>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -13,6 +14,7 @@
 #include "model.h"
 #include "FrameBuffer.hpp"
 #include "RenderBuffer.hpp"
+#include "Cubemap.h"
 
 // https://learnopengl.com/Advanced-OpenGL/Framebuffers
 
@@ -39,6 +41,60 @@ std::vector<float> ScreenVertices = {
    1.0f, -1.0f,   1.0f, 0.0f,
    1.0f, 1.0f,    1.0f, 1.0f,
 } ;
+
+std::vector<std::string> faces = {
+   "Textures/skybox/right.jpg",
+   "Textures/skybox/left.jpg",
+   "Textures/skybox/top.jpg",
+   "Textures/skybox/bottom.jpg",
+   "Textures/skybox/front.jpg",
+   "Textures/skybox/back.jpg"
+};
+
+std::vector<float> skyboxVertices = {
+    // positions          
+    -1.0f,  1.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+    -1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f
+};
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
    glViewport(0,0, width, height);
@@ -111,13 +167,32 @@ GLFWwindow* CreateWindowWithOpenGLContext()
 
 }
 
+void Skybox_pass (GLuint& SkyboxVAO, Shader& skyboxShader, Cubemap& skycubemap)
+{
+   //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+   //glClear(GL_COLOR_BUFFER_BIT );
+
+   glDepthMask(GL_FALSE);
+
+   skyboxShader.use();
+   skyboxShader.setMat4("projection", projection);
+
+   glm::mat4 centeredView = glm::mat4(glm::mat3(camera.GetViewMatrix()));
+   skyboxShader.setMat4("view", centeredView);
+
+   glBindVertexArray(SkyboxVAO);
+   skycubemap.Bind();
+   glDrawArrays(GL_TRIANGLES, 0, 36);
+   glDepthMask(GL_TRUE);
+}
+
 void drawScene_pass(Shader& shader,  Model& Object)
 {
-   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-   glStencilFunc(GL_ALWAYS, 1, 0xff);
-   glStencilMask(0xFF);
-   
+   //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+   //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+
    shader.use();
    shader.setMat4("model", model);
    shader.setMat4("view", view);
@@ -128,6 +203,8 @@ void drawScene_pass(Shader& shader,  Model& Object)
 
 void outline_pass(  Shader& shader,  Model& Object)
 {
+
+
    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
    glStencilMask(0x00);
    glDisable(GL_DEPTH_TEST);
@@ -142,6 +219,9 @@ void outline_pass(  Shader& shader,  Model& Object)
    shader.setMat4("model", model);
 
    Object.Draw(shader);
+
+   glStencilFunc(GL_ALWAYS, 1, 0xff);
+   glStencilMask(0xFF);
 }
 
 void DrawToScreen( GLuint& VAO, GLuint& ScreenTexture, Shader& shader)
@@ -179,6 +259,7 @@ int main() {
    Shader shader ("shader.vs", "shader.fs");
    Shader outlineShader("shader.vs","outlineshader.fs");
    Shader framebufferShader("Framebuffers.vs", "Framebuffers.fs" );
+   Shader skyboxShader("skybox.vs", "Cubemap.fs");
 
    Model backpack("Models/backpack.obj");
 
@@ -223,7 +304,12 @@ int main() {
 
    framebuffer.Unbind();
 
+   Cubemap skybox= Cubemap ();
+   skybox.Bind();
+   skybox.loadCubeTextures(faces);
+
    // Create ScreenVAO
+   #pragma region ScreenVAO
    GLuint ScreenVAO, VBO;
    glGenVertexArrays(1, &ScreenVAO);
    glBindVertexArray(ScreenVAO);
@@ -240,7 +326,25 @@ int main() {
 
 
    glBindVertexArray(0);
+#pragma endregion ScreenVAO
+
+
+   // Create SkyboxVAO
+   GLuint SkyboxVAO, SkyboxVBO;
+   glGenVertexArrays(1, &SkyboxVAO);
+   glBindVertexArray(SkyboxVAO);
    
+   glGenBuffers(1, &SkyboxVBO);
+   glBindBuffer(GL_ARRAY_BUFFER, SkyboxVBO);
+
+   glBufferData(GL_ARRAY_BUFFER, skyboxVertices.size() * sizeof(float), &skyboxVertices[0], GL_STATIC_DRAW);
+
+   glEnableVertexAttribArray(0);
+   glVertexAttribPointer(0,3, GL_FLOAT,GL_FALSE, 3 * sizeof(float),(void*) 0);
+
+   glBindVertexArray(0);
+
+
    glEnable(GL_DEPTH_TEST);
    glEnable(GL_STENCIL_TEST);
    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -264,21 +368,22 @@ while(!glfwWindowShouldClose(window))
 
 
    framebuffer.Bind();
-   drawScene_pass(shader,  backpack);
-   //outline_pass(outlineShader, backpack);
-   
- 
 
+   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+   Skybox_pass(SkyboxVAO, skyboxShader, skybox);
+
+   drawScene_pass(shader,  backpack);
+
+   outline_pass(outlineShader, backpack);
 
    DrawToScreen(ScreenVAO, ColourBuffer->id, framebufferShader);
-   
-  // Reset stencil 
+
+   // Reset stencil 
    glStencilMask(0xFF);
    glStencilFunc(GL_ALWAYS, 1, 0xFF);   
    glEnable(GL_DEPTH_TEST); 
-
-
-
 
    glfwSwapBuffers(window);
    glfwPollEvents();
