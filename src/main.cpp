@@ -265,16 +265,21 @@ while(!glfwWindowShouldClose(window))
 
    framebuffer.Bind();
    drawScene_pass(shader,  backpack);
-   outline_pass(outlineShader, backpack);
+   //outline_pass(outlineShader, backpack);
    
-   // Reset stencil 
+ 
+
+
+   DrawToScreen(ScreenVAO, ColourBuffer->id, framebufferShader);
+   
+  // Reset stencil 
    glStencilMask(0xFF);
    glStencilFunc(GL_ALWAYS, 1, 0xFF);   
    glEnable(GL_DEPTH_TEST); 
 
 
-   DrawToScreen(ScreenVAO, ColourBuffer->id, framebufferShader);
-   
+
+
    glfwSwapBuffers(window);
    glfwPollEvents();
 }
