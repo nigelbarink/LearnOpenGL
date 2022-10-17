@@ -188,13 +188,18 @@ void Skybox_pass (GLuint& SkyboxVAO, Shader& skyboxShader, Cubemap& skycubemap)
 void drawScene_pass(Shader& shader,  Model& Object, Cubemap& skybox)
 {
    shader.use();
-
    shader.setVec3("cameraPos", camera.Position);
+
+   glActiveTexture(GL_TEXTURE11);
    skybox.Bind();
+   glActiveTexture(GL_TEXTURE0);
+  
+
    shader.setMat4("model", model);
    shader.setMat4("view", view);
    shader.setMat4("projection", projection);
-
+   shader.setInt("skybox",11);
+   
    Object.Draw(shader);
 }
 

@@ -10,7 +10,9 @@ Cubemap::~Cubemap(){
 }
 
 void Cubemap::Bind(){
+    
     glBindTexture(GL_TEXTURE_CUBE_MAP, id);
+
 };
 
 void Cubemap::Unbind(){

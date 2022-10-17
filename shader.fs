@@ -19,24 +19,20 @@ const float diamond_ri = 2.42;
 void main()
 {
     // Regular shading
-    FragColor = texture( texture_diffuse1, TexCoords) ;
+    vec4 albeno = texture( texture_diffuse1, TexCoords) ;
 
 
     // Reflective shading
-    /*
     vec3 I = normalize(Position - cameraPos);
     vec3 R = reflect(I, normalize(Normal));
 
-    FragColor =  vec4(texture(skybox,R).rgb, 1.0);
-    */
-
+    vec4 reflections =  vec4(texture(skybox,R).rgb, 1.0);
 
     // Refractive shading
-    /*
-    float ratio = air_ri/water_ri;
-    vec3 I = normalize(Position-cameraPos);
-    vec3 R = refract(I, normalize(Normal), ratio);
-    FragColor = vec4(texture(skybox, R).rgb, 1.0);
-    */
+    float ratio = air_ri/diamond_ri;
+    vec3 I2 = normalize(Position-cameraPos);
+    vec3 R2 = refract(I2, normalize(Normal), ratio);
+    vec4 refractions = vec4(texture(skybox, R2).rgb, 1.0);
 
+    FragColor = vec4(albeno.rgb + (refractions.rgb * 0.5) + (reflections.rgb * 0.8), 1.0);
 }
