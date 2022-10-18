@@ -25,7 +25,6 @@ Shader::Shader(const char* vertextPath, const char* fragmentPath)
 
         vertexCode = vShaderStream.str();
         fragmentCode = fShaderStream.str();
-
        
     }
     catch(std::ifstream::failure e){
@@ -34,7 +33,6 @@ Shader::Shader(const char* vertextPath, const char* fragmentPath)
 
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
-
 
     // Compile Shaders
     unsigned int vertex, fragment;
@@ -86,12 +84,9 @@ Shader::Shader(const char* vertextPath, const char* fragmentPath)
 
 }
 
-
 void Shader::use(){
     glUseProgram(ID);
 }
-
-
 
 void Shader::setBool(const std::string &name, bool value) const{
     glUniform1i(glGetUniformLocation(ID, name.c_str()), (int) value );

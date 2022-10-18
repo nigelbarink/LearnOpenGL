@@ -1,4 +1,4 @@
-#include "FrameBuffer.hpp"
+#include "FrameBuffer.h"
 
 
 void FrameBuffer::Bind()

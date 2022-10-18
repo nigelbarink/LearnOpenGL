@@ -1,7 +1,6 @@
 #pragma once
-#include <glad/glad.h>
 #include "texture.h"
-#include "RenderBuffer.hpp"
+#include "RenderBuffer.h"
 
 
 class FrameBuffer 
