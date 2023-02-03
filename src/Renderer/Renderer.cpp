@@ -1,34 +1,37 @@
 #include "Renderer.h"
 #include <iostream>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include <stdio.h>
+#include <cmath>
+#include <vector>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 void Renderer::Setup()
 {
-    framebuffer = new FrameBuffer();
-    framebuffer->Bind();
+    framebuffer.Bind();
 
     ColourBuffer = CreateTexture(800,600);
-    framebuffer->Attach(*ColourBuffer);
+    framebuffer.Attach(*ColourBuffer);
 
-    renderbufferObject = new RenderBuffer();
-    renderbufferObject->Bind();
-    renderbufferObject->UseDepthAndStencil();
-    renderbufferObject->Unbind();
+    renderbufferObject.Bind();
+    renderbufferObject.UseDepthAndStencil();
+    renderbufferObject.Unbind();
 
-    framebuffer->Attach(*renderbufferObject);
+    framebuffer.Attach(renderbufferObject);
 
-    if(framebuffer->IsComplete() == false ){
+    if(framebuffer.IsComplete() == false ){
     std::cout << "ERROR::FRAMEBUFFER::Framebuffer is not complete! " << std::endl;
     }  
 
-    framebuffer->Unbind();
+    framebuffer.Unbind();
 }
 
-void Renderer::Render()
+void Renderer::Render( )
 {
-    float currentFrame = glfwGetTime();
-    deltaTime = currentFrame - lastFrame;
-    lastFrame = currentFrame; 
-
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -37,19 +40,21 @@ void Renderer::Render()
     // Reset the model matrix to an identity matrix
     model = glm::mat4(1.0f);
 
-
-    framebuffer->Bind();
-    std::cout << "Starting Render passes :" << std::endl;
-
-    // Outline of render steps
+    framebuffer.Bind();
 
     // 1. Skybox pass
+    skyboxpass.Render();
+
     // 2. Scene pass
+    scenepass.Render();
+
     // 3. outline pass
-    // SKIP for now!
+    
+    outlinepass.Render();
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
 
     // 4. draw result to screen
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -60,9 +65,10 @@ void Renderer::Render()
     glClear(GL_COLOR_BUFFER_BIT);
 
 
-    m_shader->use();
-    m_shader->setInt("screenTexture",0);
+    m_shader.use();
+    m_shader.setInt("screenTexture",0);
     glBindVertexArray(ScreenVAO);
+    
     glBindTexture(GL_TEXTURE_2D, ColourBuffer->id);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -74,15 +80,29 @@ void Renderer::Render()
 
 }
 
-
-
-Renderer::Renderer(Camera& camera) 
-: camera(camera)
+Renderer::Renderer(Camera& camera, Model& scene) :
+ camera(camera),
+ renderbufferObject(),
+ framebuffer(),
+ skybox(),
+ skyboxpass(skybox, camera, projection),
+ scenepass(skybox, scene,camera,projection, model),
+ outlinepass(scene, model, projection, camera),
+ m_shader("../Shaders/Framebuffers.vs", "../Shaders/Framebuffers.fs")
 {
-    deltaTime = 0.0f; 
-    /// Create and compile the screen shader
-    m_shader = new Shader ("Shaders/Framebuffers.vs", "Shaders/Framebuffers.fs" );
 
+    std::vector<std::string> faces = {
+        "../Textures/skybox/right.jpg",
+        "../Textures/skybox/left.jpg",
+        "../Textures/skybox/top.jpg",
+        "../Textures/skybox/bottom.jpg",
+        "../Textures/skybox/front.jpg",
+        "../Textures/skybox/back.jpg"
+    };
+    skybox.loadCubeTextures(faces);
+
+
+    // auto outlinepass = OutlinePass(scene , model, projection, camera); 
     // Create ScreenVAO
     glGenVertexArrays(1, &ScreenVAO);
     glBindVertexArray(ScreenVAO);
@@ -99,18 +119,15 @@ Renderer::Renderer(Camera& camera)
 
     glBindVertexArray(0);
 
-
     // Enable features
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     glEnable(GL_MULTISAMPLE);
+
 }
 
 Renderer::~Renderer()
 {
-    delete framebuffer;
-    delete renderbufferObject;
-    delete m_shader;
-    delete ColourBuffer;
+
 }

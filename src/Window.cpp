@@ -1,9 +1,5 @@
 #include "Window.h"
 
-bool firstMouse  = true;
-float lastx = 400, lasty = 300;
-
-
 Window::Window(int initialWidth, int initialHeight, const std::string& WindowName) 
 : m_width(initialWidth), m_height(initialHeight), m_WindowName(WindowName)
 {
@@ -38,7 +34,7 @@ Window::Window(int initialWidth, int initialHeight, const std::string& WindowNam
     // Setup Callbacks
     glfwSetFramebufferSizeCallback(m_window, framebuffer_size_callback);
     //glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetCursorPosCallback(m_window, mouse_callback);
+    //glfwSetCursorPosCallback(m_window, mouse_callback);
     glfwSetScrollCallback(m_window, scroll_callback);
 }
 
@@ -47,31 +43,4 @@ Window::~Window()
 {
     glfwDestroyWindow(m_window);
     glfwTerminate();
-}
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
-{
-    if(firstMouse){
-        lastx = xpos;
-        lasty = ypos;
-        firstMouse = false;
-    }
-
-    float xoffset = xpos - lastx;
-    float yoffset = ypos - lasty;
-
-    lastx = xpos;
-    lasty - ypos;
-
-    // camera.ProcessMouseMovement(xoffset, yoffset);
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    glViewport(0,0, width,height);
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) 
-{
-    // camera.ProcessMouseScroll(yoffset);
 }

@@ -5,14 +5,13 @@ void ScenePass::Render()
     m_shader.use();
     m_shader.setVec3("cameraPos", camera.Position);
 
-    if (m_skybox)
-    {
-        glActiveTexture(GL_TEXTURE11);
-        m_skybox->Bind();
-        glActiveTexture(GL_TEXTURE0);
+  
+    glActiveTexture(GL_TEXTURE11);
+    m_skybox.Bind(); // Segmentation Fault HERE!!
+    glActiveTexture(GL_TEXTURE0);
 
-        m_shader.setInt("skybox",11);
-    }
+    m_shader.setInt("skybox",11);
+
     
     m_shader.setMat4("model", model);
     m_shader.setMat4("view", camera.GetViewMatrix());
@@ -20,13 +19,16 @@ void ScenePass::Render()
  
 
     m_scene.Draw(m_shader);
-}
 
-void ScenePass::Setup()
-{
+    
+    m_skybox.Unbind();
+    
+    
+       
+   
 }
 
 void ScenePass::SetSkybox(Skybox& skybox)
 {
-    m_skybox = &skybox;
+    m_skybox = skybox;
 }

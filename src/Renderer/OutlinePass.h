@@ -3,17 +3,16 @@
 #include "RenderPass.h"
 #include "FrameBuffer.h"
 #include "RenderBuffer.h"
-#include "texture.h"
-#include "model.h"
-#include "camera.h"
+#include "../model.h"
+#include "../Primitives/texture.h"
+#include "../Primitives/camera.h"
 
 class OutlinePass : RenderPass {
 
 public:
-    void Setup()  override;
     void Render() override;
     
-    OutlinePass (Shader& shader, Model& sceneObject, glm::mat4& model , glm::mat4& projection, Camera& camera) ;
+    OutlinePass (Model& sceneObject, glm::mat4& model , glm::mat4& projection, Camera& camera) ;
     ~OutlinePass();
 
 private:

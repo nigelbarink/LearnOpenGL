@@ -12,7 +12,11 @@ Shader::Shader(const char* vertextPath, const char* fragmentPath)
     fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
     try{
+
+        std::cout << "Opening VertexShader.. " << vertextPath << std::endl;
         vShaderFile.open(vertextPath);
+
+        std::cout << "Opening FragmentShader.. " << fragmentPath << std::endl;
         fShaderFile.open(fragmentPath);
 
         std::stringstream vShaderStream,fShaderStream;
@@ -20,19 +24,23 @@ Shader::Shader(const char* vertextPath, const char* fragmentPath)
         vShaderStream << vShaderFile.rdbuf();
         fShaderStream << fShaderFile.rdbuf();
 
-        vShaderFile.close();
-        fShaderFile.close();
 
         vertexCode = vShaderStream.str();
         fragmentCode = fShaderStream.str();
+
+
+        vShaderFile.close();
+        fShaderFile.close();
        
     }
     catch(std::ifstream::failure e){
-        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl << e.what() << std::endl ;
+        std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
+        std::cout << e.what() <<  "| IO error code: " << e.code() << std::endl ;
     }
 
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
+
 
     // Compile Shaders
     unsigned int vertex, fragment;

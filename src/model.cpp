@@ -1,5 +1,8 @@
 #include "model.h"
+#include <stb_image.h>
 
+#include <assimp/Importer.hpp> // C++ importer interface
+#include <assimp/postprocess.h> // Post Processing flags
 
 Model::Model(std::string const& path){
         loadModel(path);
@@ -11,7 +14,7 @@ void Model::Draw(Shader& shader)
         meshes[i].Draw(shader);
 }
 
-void Model::loadModel(std::string path)
+void Model::loadModel(std::string const& path)
 {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);

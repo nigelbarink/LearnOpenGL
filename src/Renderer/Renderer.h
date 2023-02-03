@@ -1,22 +1,14 @@
 #pragma once
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <stdio.h>
-#include <cmath>
-#include <vector>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-#include "camera.h"
-#include "shader.h"
-#include "model.h"
+#include "../model.h"
+#include "../Primitives/camera.h"
+#include "../Primitives/shader.h"
 #include "FrameBuffer.h"
 #include "RenderBuffer.h"
-#include "Cubemap.h"
-#include "SkyboxPass.h"
 #include "ScenePass.h"
+#include "OutlinePass.h"
+#include "SkyboxPass.h"
+
 
 class Renderer
 {
@@ -24,19 +16,23 @@ class Renderer
       void Render();
       void Setup();
 
-      Renderer(Camera& camera);
+      Renderer(Camera& camera,Model& scene);
       ~Renderer();
-
+      
+     
    private:
-      Camera& camera;
-      float deltaTime;	// Time between current frame and last frame
-      float lastFrame = 0.0f; // Time of last frame
-      GLuint ScreenVAO, VBO;
-      FrameBuffer* framebuffer;
-      RenderBuffer* renderbufferObject;
-      Texture* ColourBuffer;
+      ScenePass scenepass;
+      SkyboxPass skyboxpass;
+      OutlinePass outlinepass;
 
-      Shader* m_shader;
+      Camera& camera;
+      GLuint ScreenVAO, VBO;
+      FrameBuffer framebuffer;
+      RenderBuffer renderbufferObject;
+      Texture* ColourBuffer;
+      Skybox skybox;
+
+      Shader m_shader;
 
       glm::mat4 model = glm::mat4(1.0f); 
       glm::mat4 view;
@@ -54,7 +50,5 @@ class Renderer
          1.0f, -1.0f,   1.0f, 0.0f,
          1.0f, 1.0f,    1.0f, 1.0f,
       };
-
- 
 
 };

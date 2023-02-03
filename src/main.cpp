@@ -2,82 +2,100 @@
 #include <vector>
 #include <string>
 #include "Window.h"
-#include "Renderer.h"
-#include "Skybox.h"
-#include "shader.h"
-#include "camera.h"
+#include "Renderer/Renderer.h"
+#include "Primitives/Skybox.h"
+#include "Primitives/shader.h"
+#include "Primitives/camera.h"
 #include "Application.h"
+#include <stb_image.h>
+
+void processInput( GLFWwindow* window);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+
+float deltaTime = 0.0f; ;	// Time between current frame and last frame
+float lastFrame = 0.0f; // Time of last frame
+bool firstMouse  = true;
+float lastx = 400, lasty = 300;
+
+Camera camera(glm::vec3(0.0f,0.0f,8.0f));
 
 class LearnOpenGL : Application 
 {
-   
 public: 
-   void Run () override{
+   void Run () override
+   {
       // Create a window
       Window window(800,600, "LearnOpenGL");
-
-      Camera camera(glm::vec3(0.0f,0.0f,8.0f));
-      
-      Renderer renderer = Renderer(camera);
-    
-      renderer.Setup();
       
       stbi_set_flip_vertically_on_load(true);
 
-      // Load scene resources 
-      Shader shader ("Shaders/shader.vs", "Shaders/shader.fs");
-      Shader outlineShader("Shaders/shader.vs","Shaders/outlineshader.fs");
-      Shader skyboxShader("Shaders/skybox.vs", "Shaders/Cubemap.fs");
+      Model backpack("../Models/backpack.obj");
 
-      Model backpack("Models/backpack.obj");
-      int bullshit = 0;
-      std::vector<std::string> faces = {
-         "Textures/skybox/right.jpg",
-         "Textures/skybox/left.jpg",
-         "Textures/skybox/top.jpg",
-         "Textures/skybox/bottom.jpg",
-         "Textures/skybox/front.jpg",
-         "Textures/skybox/back.jpg"
-      };
-
-      Skybox skybox= Skybox ();
-      skybox.Bind();
-      skybox.loadCubeTextures(faces);
-      skybox.BuildVAO();
+      Renderer renderer = Renderer(camera, backpack);
+      renderer.Setup();
 
       //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       while(!window.shouldClose())
       {
-         //window.GetInput();
+         float currentFrame = glfwGetTime();
+         deltaTime = currentFrame - lastFrame;
+         lastFrame = currentFrame; 
+
+         glfwPollEvents();
+         processInput(window.ptr());
 
          renderer.Render();
  
          window.SwapBuffers();
-         glfwPollEvents();
       }
 
    }
 };
 
-/*
-
-void processInput( GLFWwindow* window){
+void processInput( GLFWwindow* window)
+{
    if(glfwGetKey(window,GLFW_KEY_ESCAPE) == GLFW_PRESS)
       glfwSetWindowShouldClose(window, true);
 
-   const float CameraSpeed = 2.5f * Renderer::deltaTime; 
+   const float CameraSpeed = 0.5f * deltaTime; 
    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-      Renderer::camera.ProcessKeyboard(FORWARD, Renderer::deltaTime);
+      camera.ProcessKeyboard(FORWARD, CameraSpeed);
    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-      Renderer::camera.ProcessKeyboard(BACKWARD, Renderer::deltaTime);
+      camera.ProcessKeyboard(BACKWARD,CameraSpeed);
    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-       Renderer::camera.ProcessKeyboard(LEFT, Renderer::deltaTime);
+      camera.ProcessKeyboard(LEFT, CameraSpeed);
    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-      Renderer::camera.ProcessKeyboard(RIGHT,Renderer::deltaTime);
+      camera.ProcessKeyboard(RIGHT,CameraSpeed);
 }
 
-*/
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    if(firstMouse){
+        lastx = xpos;
+        lasty = ypos;
+        firstMouse = false;
+    }
 
+    float xoffset = xpos - lastx;
+    float yoffset = ypos - lasty;
+
+    lastx = xpos;
+    lasty - ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0,0, width,height);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) 
+{
+    camera.ProcessMouseScroll(yoffset);
+}
 
 int main() 
 {

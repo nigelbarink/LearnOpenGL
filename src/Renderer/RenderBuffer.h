@@ -5,7 +5,7 @@
 class RenderBuffer
 {
 public:
-    unsigned int id;
+    GLuint id;
 
     void Bind();
     void Unbind();

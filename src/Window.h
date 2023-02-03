@@ -18,8 +18,8 @@ class Window
         double getRatio(){return (this->m_width / this->m_height);}
 
         bool shouldClose(){ return glfwWindowShouldClose(m_window);}
-        //void GetInput(){ processInput(m_window);}
         void SwapBuffers(){ glfwSwapBuffers(m_window);}
+        GLFWwindow* ptr () { return m_window; }
     private:
         int m_width, m_height;
         const std::string& m_WindowName;

@@ -1,25 +1,53 @@
-#include "Cubemap.h"
+#include "Skybox.h"
 
 
-Cubemap::Cubemap(){
-    glGenTextures(1,&id);
-}
 
-Cubemap::~Cubemap(){
-   // glDeleteTextures(id);
-}
-
-void Cubemap::Bind(){
+Skybox::Skybox()
+{
+    glGenTextures(1, &id);
+  
+    // Create SkyboxVAO
+  
+    glGenVertexArrays(1, &m_skyboxVAO);
+    glBindVertexArray(m_skyboxVAO);
     
-    glBindTexture(GL_TEXTURE_CUBE_MAP, id);
+    glGenBuffers(1, &m_skyboxVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_skyboxVBO);
 
+    glBufferData(GL_ARRAY_BUFFER, m_skyboxVertices.size() * sizeof(float), &m_skyboxVertices[0], GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0,3, GL_FLOAT,GL_FALSE, 3 * sizeof(float),(void*) 0);
+
+    glBindVertexArray(0);
+
+    std::cout << "Skybox Created" << std::endl;
+
+}
+
+Skybox::~Skybox()
+{
+  glDeleteTextures(1, &id);
+  std::cout << "Skybox destroyed!" << std::endl;
+}
+
+
+
+void Skybox::Bind()
+{
+    glBindVertexArray(m_skyboxVAO);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, id);
 };
 
-void Cubemap::Unbind(){
+void Skybox::Unbind()
+{
+    glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }
 
-void Cubemap::loadCubeTextures(const std::vector<std::string>& texture_faces){
+void Skybox::loadCubeTextures(const std::vector<std::string>& texture_faces)
+{
+    Bind();
     int width, height, nrChannels;
     unsigned char* data;
     stbi_set_flip_vertically_on_load(false);
@@ -42,5 +70,6 @@ void Cubemap::loadCubeTextures(const std::vector<std::string>& texture_faces){
 
 
     stbi_set_flip_vertically_on_load(true);
+    Unbind();
 
 }
