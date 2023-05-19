@@ -21,5 +21,5 @@ RenderBuffer::RenderBuffer()
 
 RenderBuffer::~RenderBuffer()
 {
-    glDeleteRenderbuffers(GL_RENDERBUFFER, &id);
+   // glDeleteRenderbuffers(GL_RENDERBUFFER, &id);
 }

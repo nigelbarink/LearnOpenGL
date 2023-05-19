@@ -8,7 +8,14 @@ project "LearnOpenGL"
     targetdir "build/"
     targetname "LearnOpenGL"
 
-    files {"vendor/GLAD/src/glad.c","src/**.h", "src/**.cpp"}
+    files {
+        "vendor/GLAD/src/glad.c",
+        "vendor/ImGui/imgui*.cpp",
+        "vendor/ImGui/backends/imgui_impl_glfw.cpp",
+        "vendor/ImGui/backends/imgui_impl_opengl3.cpp",
+        "src/**.h",
+        "src/**.cpp"
+        }
 
     includedirs {
         "vendor/GLAD/include",
@@ -16,7 +23,8 @@ project "LearnOpenGL"
         "vendor/assimp/include",
         "vendor/assimp/build/include",
         "vendor/glm",
-        "vendor/stb"
+        "vendor/stb",
+        "vendor/ImGui"
     }
 
     libdirs{

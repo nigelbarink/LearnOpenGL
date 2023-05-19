@@ -9,17 +9,22 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
 void Renderer::Setup()
 {
     framebuffer.Bind();
 
+
     ColourBuffer = CreateTexture(800,600);
+
+
     framebuffer.Attach(*ColourBuffer);
 
     renderbufferObject.Bind();
+
     renderbufferObject.UseDepthAndStencil();
+
     renderbufferObject.Unbind();
+
 
     framebuffer.Attach(renderbufferObject);
 
@@ -33,6 +38,7 @@ void Renderer::Setup()
 void Renderer::Render( )
 {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     // Recalculate the Camera's view matrix 
@@ -44,7 +50,6 @@ void Renderer::Render( )
 
     // 1. Skybox pass
     skyboxpass.Render();
-
     // 2. Scene pass
     scenepass.Render();
 
@@ -68,8 +73,9 @@ void Renderer::Render( )
     m_shader.use();
     m_shader.setInt("screenTexture",0);
     glBindVertexArray(ScreenVAO);
-    
+
     glBindTexture(GL_TEXTURE_2D, ColourBuffer->id);
+
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
 
@@ -90,6 +96,10 @@ Renderer::Renderer(Camera& camera, Model& scene) :
  outlinepass(scene, model, projection, camera),
  m_shader("../Shaders/Framebuffers.vs", "../Shaders/Framebuffers.fs")
 {
+
+
+    outlinepass.Create();
+
 
     std::vector<std::string> faces = {
         "../Textures/skybox/right.jpg",

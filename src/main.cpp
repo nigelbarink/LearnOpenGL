@@ -6,9 +6,16 @@
 #include "Primitives/Skybox.h"
 #include "Primitives/shader.h"
 #include "Primitives/camera.h"
-#include "Application.h"
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
+#include "Application.h"
+
+
 
 void processInput( GLFWwindow* window);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -30,12 +37,24 @@ public:
       // Create a window
       Window window(800,600, "LearnOpenGL");
       
+      IMGUI_CHECKVERSION();
+      ImGui::CreateContext();
+      ImGuiIO& io = ImGui::GetIO();(void)io;
+      
+
+      ImGui::StyleColorsDark();
+
+      ImGui_ImplGlfw_InitForOpenGL(window.ptr(), true);
+      ImGui_ImplOpenGL3_Init("#version 460");
+
       stbi_set_flip_vertically_on_load(true);
 
       Model backpack("../Models/backpack.obj");
 
       Renderer renderer = Renderer(camera, backpack);
       renderer.Setup();
+
+     
 
       //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       while(!window.shouldClose())
@@ -46,11 +65,24 @@ public:
 
          glfwPollEvents();
          processInput(window.ptr());
-
          renderer.Render();
+
+
+         ImGui_ImplOpenGL3_NewFrame();
+         ImGui_ImplGlfw_NewFrame();
+         ImGui::NewFrame();
+         ImGui::ShowDemoWindow(nullptr);
+
+         ImGui::Render();
+
+         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
  
          window.SwapBuffers();
       }
+
+      ImGui_ImplOpenGL3_Shutdown();
+      ImGui_ImplGlfw_Shutdown();
+      ImGui::DestroyContext();
 
    }
 };

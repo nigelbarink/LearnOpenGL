@@ -1,40 +1,59 @@
 #include "OutlinePass.h"
 #include "Renderer.h"
+#include "../../CheckErrors.h"
 
 OutlinePass::OutlinePass(Model& sceneObject, glm::mat4& model, glm::mat4& projection, Camera& camera) 
 : RenderPass("Renderpass - Outline", "../Shaders/shader.vs", "../Shaders/outlineshader.fs"  ) , m_model(sceneObject), camera(camera), projection(projection), model(model)
 {
-    // Framebuffer outline effect
-    std::cout << "Create Framebuffer" << std::endl;
-    
-      m_outlineFrameBuffer = FrameBuffer();
-      m_outlineFrameBuffer.Bind();
-
-      // Create a texture attachment (colour attachment)
-      std::cout << "Create Texture" << std::endl;
-      m_depthTexture = CreateTexture(800,600);
-   
-      // attach texture to the frame buffer as a colour attachment
-      m_outlineFrameBuffer.Attach(*m_depthTexture);
-
-      // Add depth buffer attachment 
-      std::cout << "Create RenderBuffer" << std::endl;
-      m_outlineRenderBuffer = RenderBuffer();
-      m_outlineRenderBuffer.Bind();
-      m_outlineRenderBuffer.UseDepthAndStencil();
-      m_outlineRenderBuffer.Unbind();
-
-      // attach depth buffer to our framebuffer
-      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_outlineRenderBuffer.id);
-      m_outlineFrameBuffer.Unbind();
-
-      std::cout << "Success!" << std::endl;
-
 }
 
-OutlinePass::~OutlinePass(){
+void OutlinePass::Create() {
+    // Framebuffer outline effect
+    std::cout << "Create Framebuffer" << std::endl;
 
-    delete m_depthTexture;
+    m_outlineFrameBuffer = new FrameBuffer();
+    glCheckError();
+
+    m_outlineFrameBuffer->Bind();
+    glCheckError();
+
+    // Create a texture attachment (colour attachment)
+    std::cout << "Create Texture" << std::endl;
+    m_colourTexture = CreateTexture(800, 600);
+    glCheckError();
+
+    // attach texture to the frame buffer as a colour attachment
+    m_outlineFrameBuffer->Attach(*m_colourTexture);
+    glCheckError();
+
+    // Add depth buffer attachment 
+    std::cout << "Create RenderBuffer" << std::endl;
+    m_outlineRenderBuffer = new RenderBuffer();
+    glCheckError();
+
+    m_outlineRenderBuffer->Bind();
+    glCheckError();
+
+    m_outlineRenderBuffer->UseDepthAndStencil();
+    glCheckError();
+
+    m_outlineRenderBuffer->Unbind();
+    glCheckError();
+
+    // attach depth buffer to our framebuffer
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_outlineRenderBuffer->id);
+    glCheckError();
+
+    m_outlineFrameBuffer->Unbind();
+    glCheckError();
+
+    std::cout << "Success!" << std::endl;
+}
+
+
+OutlinePass::~OutlinePass(){
+    delete m_colourTexture;
+    delete m_outlineRenderBuffer;
 }
 
 void OutlinePass::Render()

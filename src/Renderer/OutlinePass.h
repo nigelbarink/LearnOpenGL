@@ -13,12 +13,13 @@ public:
     void Render() override;
     
     OutlinePass (Model& sceneObject, glm::mat4& model , glm::mat4& projection, Camera& camera) ;
+    void Create();
     ~OutlinePass();
 
 private:
-    FrameBuffer m_outlineFrameBuffer;
-    RenderBuffer m_outlineRenderBuffer;
-    Texture* m_depthTexture;
+    FrameBuffer* m_outlineFrameBuffer;
+    RenderBuffer* m_outlineRenderBuffer;
+    Texture* m_colourTexture;
 
     glm::mat4 model;
     glm::mat4 projection;
