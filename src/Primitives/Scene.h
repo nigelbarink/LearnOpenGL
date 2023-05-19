@@ -2,11 +2,13 @@
 #include <vector>
 #include "../model.h"
 #include "camera.h"
+#include "Skybox.h"
 
 class Scene {
 public:
 
-	Camera cameras;
+	Camera MainCamera;
+	Skybox skybox;
 	std::vector <Model> entities;
 //	std::vector<Material> materials;
 

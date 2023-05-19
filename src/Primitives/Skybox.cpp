@@ -1,38 +1,5 @@
 #include "Skybox.h"
 
-
-
-Skybox::Skybox()
-{
-    glGenTextures(1, &id);
-  
-    // Create SkyboxVAO
-  
-    glGenVertexArrays(1, &m_skyboxVAO);
-    glBindVertexArray(m_skyboxVAO);
-    
-    glGenBuffers(1, &m_skyboxVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, m_skyboxVBO);
-
-    glBufferData(GL_ARRAY_BUFFER, m_skyboxVertices.size() * sizeof(float), &m_skyboxVertices[0], GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0,3, GL_FLOAT,GL_FALSE, 3 * sizeof(float),(void*) 0);
-
-    glBindVertexArray(0);
-
-    std::cout << "Skybox Created" << std::endl;
-
-}
-
-Skybox::~Skybox()
-{
-  glDeleteTextures(1, &id);
-  std::cout << "Skybox destroyed!" << std::endl;
-}
-
-
-
 void Skybox::Bind()
 {
     glBindVertexArray(m_skyboxVAO);
@@ -45,8 +12,33 @@ void Skybox::Unbind()
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }
 
+void Skybox::Destroy() {
+    glDeleteTextures(1, &id);
+    std::cout << "Skybox destroyed!" << std::endl;
+}
+
 void Skybox::loadCubeTextures(const std::vector<std::string>& texture_faces)
 {
+    glGenTextures(1, &id);
+
+    // Create SkyboxVAO
+
+    glGenVertexArrays(1, &m_skyboxVAO);
+    glBindVertexArray(m_skyboxVAO);
+
+    glGenBuffers(1, &m_skyboxVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_skyboxVBO);
+
+    glBufferData(GL_ARRAY_BUFFER, m_skyboxVertices.size() * sizeof(float), &m_skyboxVertices[0], GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    glBindVertexArray(0);
+
+    std::cout << "Skybox Created" << std::endl;
+
+
     Bind();
     int width, height, nrChannels;
     unsigned char* data;

@@ -26,8 +26,7 @@ float deltaTime = 0.0f; ;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 bool firstMouse  = true;
 float lastx = 400, lasty = 300;
-
-Camera camera(glm::vec3(0.0f,0.0f,8.0f));
+Scene scene;
 
 class LearnOpenGL : Application 
 {
@@ -50,10 +49,8 @@ public:
       stbi_set_flip_vertically_on_load(true);
       Model backpack("../Models/backpack.obj");
 
-      Scene scene;
       scene.entities.push_back(backpack);
-
-      scene.cameras = camera;
+      scene.MainCamera = Camera(glm::vec3(0.0f, 0.0f, 8.0f));
 
 
       std::vector<std::string> faces = {
@@ -64,8 +61,7 @@ public:
           "../Textures/skybox/front.jpg",
           "../Textures/skybox/back.jpg"
       };
-      Skybox skybox = Skybox();
-      skybox.loadCubeTextures(faces);
+      scene.skybox.loadCubeTextures(faces);
 
       Renderer renderer = Renderer();
       renderer.resize(WIDTH, HEIGHT);
@@ -97,6 +93,8 @@ public:
          window.SwapBuffers();
       }
 
+      scene.skybox.Destroy();
+
       ImGui_ImplOpenGL3_Shutdown();
       ImGui_ImplGlfw_Shutdown();
       ImGui::DestroyContext();
@@ -111,13 +109,13 @@ void processInput( GLFWwindow* window)
 
    const float CameraSpeed = 0.5f * deltaTime; 
    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-      camera.ProcessKeyboard(FORWARD, CameraSpeed);
+      scene.MainCamera.ProcessKeyboard(FORWARD, CameraSpeed);
    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-      camera.ProcessKeyboard(BACKWARD,CameraSpeed);
+      scene.MainCamera.ProcessKeyboard(BACKWARD,CameraSpeed);
    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-      camera.ProcessKeyboard(LEFT, CameraSpeed);
+      scene.MainCamera.ProcessKeyboard(LEFT, CameraSpeed);
    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-      camera.ProcessKeyboard(RIGHT,CameraSpeed);
+      scene.MainCamera.ProcessKeyboard(RIGHT,CameraSpeed);
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
@@ -134,17 +132,19 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     lastx = xpos;
     lasty - ypos;
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    scene.MainCamera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0,0, width,height);
+   
+
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) 
 {
-    camera.ProcessMouseScroll(yoffset);
+    scene.MainCamera.ProcessMouseScroll(yoffset);
 }
 
 int main() 

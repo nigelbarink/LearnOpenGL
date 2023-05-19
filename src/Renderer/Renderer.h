@@ -10,8 +10,7 @@
 class Renderer
 {
    public:
-       Renderer();
-      ~Renderer();
+       Renderer() = default ;
       void Setup();
       void resize(int width, int height);
       void Render(Scene& scene);

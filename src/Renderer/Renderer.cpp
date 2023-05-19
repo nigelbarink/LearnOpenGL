@@ -68,13 +68,11 @@ void Renderer::Render(Scene& scene)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
    
-    glm::mat4 projection = glm::perspective(glm::radians(scene.cameras.Zoom), (float)800 / (float)600, 0.1f, 100.0f);
-    auto view = scene.cameras.GetViewMatrix();
+    glm::mat4 projection = glm::perspective(glm::radians(scene.MainCamera.Zoom), (float)800 / (float)600, 0.1f, 100.0f);
+    auto view = scene.MainCamera.GetViewMatrix();
     auto model = glm::mat4(1.0f);
 
-
     // 1. Skybox pass
-    /*
     Shader cubemap;
     cubemap.Load("../Shaders/skybox.vs", "../Shaders/Cubemap.fs");
 
@@ -83,17 +81,16 @@ void Renderer::Render(Scene& scene)
     cubemap.use();
 
     cubemap.setMat4("projection", projection);
-    auto centeredView = glm::mat4(glm::mat3(scene.cameras.GetViewMatrix()));
+    auto centeredView = glm::mat4(glm::mat3(scene.MainCamera.GetViewMatrix()));
     cubemap.setMat4("view", centeredView);
 
-    skybox.Bind();
+    scene.skybox.Bind();
 
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
-    skybox.Unbind();
+    scene.skybox.Unbind();
 
     glDepthMask(GL_TRUE);
-    */
 
 
     // 2. Scene pass
@@ -101,14 +98,7 @@ void Renderer::Render(Scene& scene)
     blinnPhong.Load("../Shaders/shader.vs", "../Shaders/shader.fs");
 
     blinnPhong.use();
-    blinnPhong.setVec3("cameraPos", scene.cameras.Position);
-
-    /*
-    glActiveTexture(GL_TEXTURE11);
-    m_skybox.Bind(); // Segmentation Fault HERE!!
-    glActiveTexture(GL_TEXTURE0);
-
-    */
+    blinnPhong.setVec3("cameraPos", scene.MainCamera.Position);
 
     blinnPhong.setInt("skybox", 11);
 
@@ -119,8 +109,6 @@ void Renderer::Render(Scene& scene)
     for (auto entity : scene.entities) {
         entity.Draw(blinnPhong);
     }
-
-    // m_skybox.Unbind();
 
     // 3. outline pass
     //Shader OutlineShader;
@@ -160,18 +148,4 @@ void Renderer::Render(Scene& scene)
 void Renderer::Shutdown() {
 
     framebuffer.Unbind();
-}
-
-Renderer::Renderer() {
-  
-
-
-    // auto outlinepass = OutlinePass(scene , model, projection, camera); 
-   
-
-}
-
-Renderer::~Renderer()
-{
-
 }

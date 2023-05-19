@@ -9,14 +9,14 @@
 
 class Skybox {
 public:
-    Skybox ();
-    ~Skybox ();
+    Skybox () = default ;
     GLuint m_skyboxVAO;
 
 
 
     void Bind();
     void Unbind();
+    void Destroy();
     void loadCubeTextures(const std::vector<std::string>& texture_faces);
 
 private:
