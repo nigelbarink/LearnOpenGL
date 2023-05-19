@@ -10,7 +10,7 @@ public:
     void Bind();
     void Unbind();
 
-    void UseDepthAndStencil();
+    void UseDepthAndStencil(int width, int height);
     
     RenderBuffer();
     ~RenderBuffer();

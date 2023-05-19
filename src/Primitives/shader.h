@@ -13,8 +13,8 @@ class Shader
         unsigned int ID;// Program ID
 
         // Read and build the shader upon construction
-        Shader(const char* vertexPath, const char* fragmentPath);
-
+        Shader() = default;
+        void Load(const char* vertexPath, const char* fragmentPath);
         // Activate the shader
         void use();
 

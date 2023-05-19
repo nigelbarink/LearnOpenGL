@@ -14,14 +14,14 @@
 #include <stb_image.h>
 
 #include "Application.h"
-
+#include "Primitives/Scene.h"
 
 
 void processInput( GLFWwindow* window);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-
+const int WIDTH = 800, HEIGHT = 600;
 float deltaTime = 0.0f; ;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 bool firstMouse  = true;
@@ -35,7 +35,7 @@ public:
    void Run () override
    {
       // Create a window
-      Window window(800,600, "LearnOpenGL");
+      Window window(WIDTH,HEIGHT, "LearnOpenGL");
       
       IMGUI_CHECKVERSION();
       ImGui::CreateContext();
@@ -48,10 +48,27 @@ public:
       ImGui_ImplOpenGL3_Init("#version 460");
 
       stbi_set_flip_vertically_on_load(true);
-
       Model backpack("../Models/backpack.obj");
 
-      Renderer renderer = Renderer(camera, backpack);
+      Scene scene;
+      scene.entities.push_back(backpack);
+
+      scene.cameras = camera;
+
+
+      std::vector<std::string> faces = {
+          "../Textures/skybox/right.jpg",
+          "../Textures/skybox/left.jpg",
+          "../Textures/skybox/top.jpg",
+          "../Textures/skybox/bottom.jpg",
+          "../Textures/skybox/front.jpg",
+          "../Textures/skybox/back.jpg"
+      };
+      Skybox skybox = Skybox();
+      skybox.loadCubeTextures(faces);
+
+      Renderer renderer = Renderer();
+      renderer.resize(WIDTH, HEIGHT);
       renderer.Setup();
 
      
@@ -65,7 +82,7 @@ public:
 
          glfwPollEvents();
          processInput(window.ptr());
-         renderer.Render();
+         renderer.Render(scene);
 
 
          ImGui_ImplOpenGL3_NewFrame();
