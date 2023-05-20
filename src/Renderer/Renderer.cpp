@@ -10,6 +10,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "../Primitives/Scene.h"
+#include "../model.h"
 static enum class RenderPass {
     NONE = 0,
     SKYBOX,
@@ -37,7 +38,11 @@ glm::vec3 lightColors[] = {
 int nrRows = 7;
 int nrColumns = 7;
 float spacing = 2.5;
-
+unsigned int albedo;
+unsigned int normal;
+unsigned int metallic;
+unsigned int roughness;
+unsigned int ao;
 void Renderer::Setup()
 {
     // Create ScreenVAO
@@ -69,6 +74,14 @@ void Renderer::Setup()
     shaders[static_cast<int>(RenderPass::DEFAULT)].Load("../Shaders/shader.vs", "../Shaders/shader.fs");
     shaders[static_cast<int>(RenderPass::PBR)] = Shader();
     shaders[static_cast<int>(RenderPass::PBR)].Load("../Shaders/pbr.vs", "../Shaders/pbr.fs");
+
+
+    albedo = TextureFromFile("../Textures/rusted_iron/albedo.png", ".");
+    normal = TextureFromFile("../Textures/rusted_iron/normal.png", ".");
+    metallic = TextureFromFile("../Textures/rusted_iron/metallic.png", ".");
+    roughness = TextureFromFile("../Textures/rusted_iron/roughness.png", ".");
+    ao = TextureFromFile("../Textures/rusted_iron/ao.png",".");
+
 
 }
 
@@ -113,7 +126,6 @@ void Renderer::resize(int width, int height ) {
 
 
 }
-
 
 
 
@@ -232,6 +244,7 @@ void Renderer::Render(Scene& scene)
     auto centeredView = glm::mat4(glm::mat3(scene.MainCamera.GetViewMatrix()));
     shader.setMat4("view", centeredView);
 
+    glActiveTexture(GL_TEXTURE0);
     scene.skybox.Bind();
 
     glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -266,19 +279,37 @@ void Renderer::Render(Scene& scene)
     shader = shaders.at(static_cast<int>(RenderPass::PBR));
 
     shader.use();
-    shader.setVec3("albedo", glm::vec3(0.5f, 0.0f, 0.0f));
-    shader.setFloat("ao", 1.0f);
+    shader.setInt("albedoMap", 0);
+    shader.setInt("normalMap", 1);
+    shader.setInt("metallicMap", 2);
+    shader.setInt("roughnessMap", 3);
+    shader.setInt("aoMap", 4);
+
     shader.setMat4("projection", projection);
     view = scene.MainCamera.GetViewMatrix();
     shader.setMat4("view", view);
     shader.setVec3("camPos", scene.MainCamera.Position);
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, albedo);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, normal);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, metallic);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, roughness);
+
+
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, ao);
+
+
     model = glm::mat4(1.0f);
     for (int row = 0; row < nrRows; ++row) {
-        shader.setFloat("metallic", (float)row / (float)nrRows);
         for (int col = 0; col < nrColumns; ++col) {
-
-            shader.setFloat("roughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
 
             model = glm::mat4(1.0f);
             model = glm::translate(model, glm::vec3(
