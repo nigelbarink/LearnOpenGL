@@ -53,6 +53,8 @@ public:
       scene.MainCamera = Camera(glm::vec3(0.0f, 0.0f, 8.0f));
 
 
+
+
       std::vector<std::string> faces = {
           "../Textures/skybox/right.jpg",
           "../Textures/skybox/left.jpg",
@@ -67,7 +69,8 @@ public:
       renderer.resize(WIDTH, HEIGHT);
       renderer.Setup();
 
-     
+
+
 
       //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       while(!window.shouldClose())
