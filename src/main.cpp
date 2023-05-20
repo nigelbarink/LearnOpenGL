@@ -9,6 +9,7 @@
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
+#include <chrono>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -78,7 +79,7 @@ public:
          float currentFrame = glfwGetTime();
          deltaTime = currentFrame - lastFrame;
          lastFrame = currentFrame; 
-
+         int fps = 1000 / (std::round(deltaTime/ 0.001) * 0.001);
          glfwPollEvents();
          processInput(window.ptr());
          renderer.Render(scene);
@@ -88,6 +89,13 @@ public:
          ImGui_ImplGlfw_NewFrame();
          ImGui::NewFrame();
          ImGui::ShowDemoWindow(nullptr);
+
+         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.6f));
+         ImGui::Begin("##Performance");
+         ImGui::Text("Frame time: %5.3f", deltaTime);
+         ImGui::Text("FPS: %d", fps  );
+         ImGui::End();
+         ImGui::PopStyleColor();
 
          ImGui::Render();
 
@@ -110,7 +118,7 @@ void processInput( GLFWwindow* window)
    if(glfwGetKey(window,GLFW_KEY_ESCAPE) == GLFW_PRESS)
       glfwSetWindowShouldClose(window, true);
 
-   const float CameraSpeed = 0.5f * deltaTime; 
+   const float CameraSpeed = 0.8f * deltaTime; 
    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
       scene.MainCamera.ProcessKeyboard(FORWARD, CameraSpeed);
    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
