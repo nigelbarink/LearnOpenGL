@@ -6,6 +6,7 @@
 #include "FrameBuffer.h"
 #include "RenderBuffer.h"
 #include "../Primitives/Scene.h"
+#include <map>
 
 class Renderer
 {
@@ -20,11 +21,14 @@ class Renderer
    private:
       GLuint ScreenVAO, VBO;
       FrameBuffer framebuffer;
+      FrameBuffer OutlineEffect;
       RenderBuffer renderbufferObject;
       Texture* ColourBuffer;
-      Shader shader;
-
+      
       glm::vec3 lightpos = glm::vec3(-0.2f, -1.0f, -0.3f);
+
+      std::map<int, Shader> shaders;
+
 
       std::vector<float> ScreenVertices = {
          // vertex ,    uv 

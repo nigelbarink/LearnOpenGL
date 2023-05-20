@@ -10,10 +10,18 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "../Primitives/Scene.h"
+static enum class RenderPass {
+    NONE = 0,
+    SKYBOX,
+    DEFAULT,
+};
+const int num_passes = static_cast<int>(RenderPass::DEFAULT) ;
+
+Texture* colourAttachment;
+
+
 void Renderer::Setup()
 {
-    shader.Load("../Shaders/Framebuffers.vs", "../Shaders/Framebuffers.fs");
-
     // Create ScreenVAO
     glGenVertexArrays(1, &ScreenVAO);
     glBindVertexArray(ScreenVAO);
@@ -36,7 +44,14 @@ void Renderer::Setup()
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     glEnable(GL_MULTISAMPLE);
 
+    // Load shaders 
+    shaders[static_cast<int>(RenderPass::SKYBOX)] = Shader();
+    shaders[static_cast<int>(RenderPass::SKYBOX)].Load("../Shaders/skybox.vs", "../Shaders/Cubemap.fs");
+    shaders[static_cast<int>(RenderPass::DEFAULT)] = Shader();
+    shaders[static_cast<int>(RenderPass::DEFAULT)].Load("../Shaders/shader.vs", "../Shaders/shader.fs");
+
 }
+
 void Renderer::resize(int width, int height ) {
     framebuffer = FrameBuffer();
     
@@ -60,29 +75,45 @@ void Renderer::resize(int width, int height ) {
 
     renderbufferObject.Unbind();
 
-}
+    OutlineEffect = FrameBuffer();
+    OutlineEffect.Bind();
 
+    colourAttachment = CreateTexture(width, height);
+    OutlineEffect.Attach(*colourAttachment);
+
+    auto renderBuffer = RenderBuffer();
+    renderBuffer.Bind();
+    renderBuffer.UseDepthAndStencil(width, height);
+
+    renderBuffer.Unbind();
+
+    glad_glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBuffer.id);
+
+    OutlineEffect.Unbind();
+
+
+}
 
 void Renderer::Render(Scene& scene)
 {
+    static RenderPass currentPass = RenderPass::SKYBOX;
+
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-   
+
     glm::mat4 projection = glm::perspective(glm::radians(scene.MainCamera.Zoom), (float)800 / (float)600, 0.1f, 100.0f);
     auto view = scene.MainCamera.GetViewMatrix();
-    auto model = glm::mat4(1.0f);
+    auto model = glm::mat4(1.0f);   
 
-    // 1. Skybox pass
-    Shader cubemap;
-    cubemap.Load("../Shaders/skybox.vs", "../Shaders/Cubemap.fs");
-
+    std::cout << "SKYBOX PASS!" << std::endl;
     glDepthMask(GL_FALSE);
+    Shader shader = shaders.at(static_cast<int>(RenderPass::SKYBOX));
 
-    cubemap.use();
+    shader.use();
 
-    cubemap.setMat4("projection", projection);
+    shader.setMat4("projection", projection);
     auto centeredView = glm::mat4(glm::mat3(scene.MainCamera.GetViewMatrix()));
-    cubemap.setMat4("view", centeredView);
+    shader.setMat4("view", centeredView);
 
     scene.skybox.Bind();
 
@@ -93,42 +124,68 @@ void Renderer::Render(Scene& scene)
     glDepthMask(GL_TRUE);
 
 
-    // 2. Scene pass
-    Shader  blinnPhong;
-    blinnPhong.Load("../Shaders/shader.vs", "../Shaders/shader.fs");
+    std::cout << "DEFAULT PASS!" << std::endl;
+    shader = shaders.at(static_cast<int>(RenderPass::DEFAULT));
 
-    blinnPhong.use();
-    blinnPhong.setVec3("cameraPos", scene.MainCamera.Position);
+    shader.use();
+    shader.setVec3("cameraPos", scene.MainCamera.Position);
+    shader.setInt("skybox", 11);
 
-    blinnPhong.setInt("skybox", 11);
+    glActiveTexture(GL_TEXTURE11);
+    scene.skybox.Bind();
+    glActiveTexture(GL_TEXTURE0);
 
-    blinnPhong.setMat4("model", model);
-    blinnPhong.setMat4("view", view);
-    blinnPhong.setMat4("projection", projection);
 
+    shader.setMat4("model", model);
+    shader.setMat4("view", view);
+    shader.setMat4("projection", projection);
     for (auto entity : scene.entities) {
-        entity.Draw(blinnPhong);
+        entity.Draw(shader);
     }
-
-    // 3. outline pass
-    //Shader OutlineShader;
-    //OutlineShader.Load("../Shaders/shader.vs", "../Shaders/outlineshader.fs");
-
+    scene.skybox.Unbind();
 
     /*
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    */
+    Shader OutlineShader;
+    OutlineShader.Load("../Shaders/shader.vs", "../Shaders/outlineshader.fs");
 
-    // 4. draw result to screen
-    /*glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+    glStencilMask(0x00);
     glDisable(GL_DEPTH_TEST);
 
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    //OutlineEffect.Bind();
+    //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    OutlineShader.use();
+    OutlineShader.setMat4("model", glm::scale(glm::mat4(1.0f), glm::vec3(1.05f, 1.05f, 1.05f)));
+    OutlineShader.setMat4("view", view);
+    OutlineShader.setMat4("projection", projection);
+    OutlineShader.setVec3("outlineColor", glm::vec3(0.28f, 0.10f, 0.26f));
 
+    for (auto entity : scene.entities) {
+        entity.Draw(OutlineShader);
+    }
+
+            glStencilFunc(GL_ALWAYS, 1, 0xFF);
+            glStencilMask(0xFF);
+                
+        */
+
+     
+    
+   
+
+   
+
+    
+    // 4. draw result to screen
+    /*
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    glDisable(GL_DEPTH_TEST);
+
+    Shader shader;
+    shader.Load("../Shaders/Framebuffers.vs", "../Shaders/Framebuffers.fs");
     shader.use();
     shader.setInt("screenTexture",0);
     glBindVertexArray(ScreenVAO);
@@ -139,13 +196,12 @@ void Renderer::Render(Scene& scene)
 
 
     // Reset stencil 
-    glStencilMask(0xFF);
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);   
-    glEnable(GL_DEPTH_TEST); 
+    glEnable(GL_DEPTH_TEST);
     */
 }
 
 void Renderer::Shutdown() {
+
 
     framebuffer.Unbind();
 }

@@ -29,10 +29,10 @@ void main()
     vec4 reflections =  vec4(texture(skybox,R).rgb, 1.0);
 
     // Refractive shading
-    float ratio = air_ri/diamond_ri;
+    float ratio = air_ri/Ice_ri;
     vec3 I2 = normalize(Position-cameraPos);
     vec3 R2 = refract(I2, normalize(Normal), ratio);
     vec4 refractions = vec4(texture(skybox, R2).rgb, 1.0);
 
-    FragColor = vec4(albeno.rgb + (refractions.rgb * 0.5) + (reflections.rgb * 0.8), 1.0);
+    FragColor = vec4(albeno.rgb + (refractions.rgb * 1.0) + (reflections.rgb * 0.0), 1.0);
 }
