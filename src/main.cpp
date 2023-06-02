@@ -71,8 +71,6 @@ public:
       renderer.Setup();
 
 
-
-
       //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       while(!window.shouldClose())
       {

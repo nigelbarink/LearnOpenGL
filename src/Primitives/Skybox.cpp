@@ -17,6 +17,7 @@ void Skybox::Destroy() {
     std::cout << "Skybox destroyed!" << std::endl;
 }
 
+
 void Skybox::loadCubeTextures(const std::vector<std::string>& texture_faces)
 {
     glGenTextures(1, &id);

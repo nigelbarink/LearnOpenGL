@@ -9,4 +9,5 @@ struct Texture{
    std::string path;
 };
 
+
 Texture* CreateTexture(unsigned int width, unsigned int height);
