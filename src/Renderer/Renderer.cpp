@@ -120,7 +120,7 @@ void renderCube() {
 }
 
 
-
+unsigned int irradianceMap;
 unsigned int envCubemap;
 unsigned int envMapVAO;
 void Renderer::Setup()
@@ -219,7 +219,46 @@ void Renderer::Setup()
         renderCube();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Generate irradiancemap
+    glGenTextures(1, &irradianceMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+    for (unsigned int i = 0; i < 6; ++i) {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0, GL_RGB, GL_FLOAT, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
+
+
+    auto irradianceShader = Shader();
+    irradianceShader.Load("../Shaders/skybox2.vs", "../Shaders/irradienceconv.fs");
+    irradianceShader.use();
+    irradianceShader.setInt("environmentMap", 0);
+    irradianceShader.setMat4("projection", captureProjection);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+
+    glViewport(0, 0, 32, 32);
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    for (unsigned int i = 0; i < 6; ++i) {
+        irradianceShader.setMat4("view", captureViews[i]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        renderCube();
+    }
     glViewport(0, 0, 800, 600); // restore viewport;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+
 
     std::vector<float> m_skyboxVertices = {
         // positions          
@@ -325,8 +364,6 @@ void Renderer::resize(int width, int height ) {
 
 }
 
-
-
 unsigned int sphereVAO = 0;
 unsigned int indexCount;
 void renderSphere() {
@@ -419,7 +456,6 @@ void renderSphere() {
     glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 }
 
-
 void Renderer::Render(Scene& scene)
 {
    
@@ -503,6 +539,7 @@ void Renderer::Render(Scene& scene)
     shader.setInt("metallicMap", 2);
     shader.setInt("roughnessMap", 3);
     shader.setInt("aoMap", 4);
+    shader.setInt("irradianceMap", 5);
 
     shader.setMat4("projection", projection);
     view = scene.MainCamera.GetViewMatrix();
@@ -521,9 +558,12 @@ void Renderer::Render(Scene& scene)
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, roughness);
 
-
     glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D, ao);
+
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+
 
     // Render Spheres
     model = glm::mat4(1.0f);

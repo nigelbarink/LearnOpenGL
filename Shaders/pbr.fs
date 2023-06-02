@@ -12,6 +12,8 @@ uniform sampler2D metallicMap;
 uniform sampler2D normalMap;
 uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
+uniform samplerCube irradianceMap;
+
 
 uniform vec3 lightPositions[4];
 uniform vec3 lightColors[4];
@@ -21,9 +23,9 @@ const float PI = 3.14159265359;
 
 
 // ratio Refraction vs Reflection (F function)
-vec3 fresnelSchlick (float cosTheta, vec3 F0)
+vec3 fresnelSchlick (float cosTheta, vec3 F0, float roughness)
 {
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+    return F0 + (max(vec3(1.0- roughness), F0)- F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 // Calculate Normal distribution (D function)
@@ -102,7 +104,7 @@ void main(){
         
         float NDF = DistributionGGX(N,H, roughness);
         float G = GeometrySmith(N,V,L, roughness);
-        vec3 F = fresnelSchlick(max(dot(H,V), 0.0), F0);
+        vec3 F = fresnelSchlick(max(dot(H,V), 0.0), F0, roughness);
 
         vec3 kS = F;
         vec3 kD = vec3(1.0) - kS;
@@ -118,8 +120,15 @@ void main(){
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
+    
+
     // Calculate the ambient term and add it 
-    vec3 ambient = vec3(0.03) * albedo * ao;
+    vec3 kS = fresnelSchlick(max(dot(N,V), 0.0), F0, roughness);
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metallic;
+    vec3 irradiance = texture(irradianceMap, N).rgb;
+    vec3 diffuse = irradiance* albedo;
+    vec3 ambient = (kD * diffuse) * ao;
     vec3 color = ambient + Lo;
 
     // HDR tonemapping
