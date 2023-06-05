@@ -12,8 +12,11 @@ uniform sampler2D metallicMap;
 uniform sampler2D normalMap;
 uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
-uniform samplerCube irradianceMap;
 
+
+uniform samplerCube irradianceMap;
+uniform samplerCube prefilterMap;
+uniform sampler2D brdfLUT;
 
 uniform vec3 lightPositions[4];
 uniform vec3 lightColors[4];
@@ -78,6 +81,8 @@ vec3 getNormalFromNormalMap(){
     return normalize(TBN * tangentNormal);
 }
 
+
+
 void main(){
 
     vec3 albedo = pow(texture(albedoMap, TexCoords).rgb, vec3(2.2));
@@ -88,7 +93,9 @@ void main(){
 
     vec3 N = getNormalFromNormalMap();
     vec3 V = normalize(camPos - WorldPos);
-    
+    vec3 R = reflect(-V, N);
+
+
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
 
@@ -128,7 +135,15 @@ void main(){
     kD *= 1.0 - metallic;
     vec3 irradiance = texture(irradianceMap, N).rgb;
     vec3 diffuse = irradiance* albedo;
-    vec3 ambient = (kD * diffuse) * ao;
+
+    const float MAX_REFLECTION_LOD = 4.0;
+    vec3 prefilterColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+    vec2 envBRDF = texture(brdfLUT, vec2(max(dot(N,V), 0.0), roughness)).rg;
+    vec3 specular = prefilterColor * (kS * envBRDF.x + envBRDF.y);
+
+
+
+    vec3 ambient = (kD * diffuse + specular) * ao;
     vec3 color = ambient + Lo;
 
     // HDR tonemapping

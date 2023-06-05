@@ -119,12 +119,45 @@ void renderCube() {
     glBindVertexArray(0);
 }
 
+unsigned int quadVAO = 0;
+unsigned int quadVBO;
+void renderQuad()
+{
+    if (quadVAO == 0)
+    {
+        float quadVertices[] = {
+            // positions        // texture Coords
+            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+             1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        };
+        // setup plane VAO
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+}
 
+
+
+unsigned int brdfLUTTexture;
+unsigned int prefilterMap;
 unsigned int irradianceMap;
 unsigned int envCubemap;
 unsigned int envMapVAO;
 void Renderer::Setup()
 {
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     // Create ScreenVAO
     glGenVertexArrays(1, &ScreenVAO);
     glBindVertexArray(ScreenVAO);
@@ -158,11 +191,11 @@ void Renderer::Setup()
     shaders[static_cast<int>(RenderPass::PBR)].Load("../Shaders/pbr.vs", "../Shaders/pbr.fs");
 
 
-    albedo = TextureFromFile("../Textures/rusted_iron/albedo.png", ".");
-    normal = TextureFromFile("../Textures/rusted_iron/normal.png", ".");
-    metallic = TextureFromFile("../Textures/rusted_iron/metallic.png", ".");
-    roughness = TextureFromFile("../Textures/rusted_iron/roughness.png", ".");
-    ao = TextureFromFile("../Textures/rusted_iron/ao.png",".");
+    albedo = TextureFromFile("../Textures/space-cruiser/albedo.png", ".");
+    normal = TextureFromFile("../Textures/space-cruiser/normal.png", ".");
+    metallic = TextureFromFile("../Textures/space-cruiser/metallic.png", ".");
+    roughness = TextureFromFile("../Textures/space-cruiser/roughness.png", ".");
+    ao = TextureFromFile("../Textures/space-cruiser/ao.png",".");
 
 
     // Create the skybox from an HDR equirectangular environment map 
@@ -199,7 +232,7 @@ void Renderer::Setup()
     auto eqShader = Shader();
     eqShader.Load("../Shaders/HDRMap.vs", "../Shaders/HDRMap.fs");
 
-    auto hdrTexture = LoadIBL("../Textures/photostudio.hdr");
+    auto hdrTexture = LoadIBL("../Textures/night_2k.hdr");
 
     eqShader.use();
     eqShader.setInt("equirectangularMap", 0);
@@ -318,6 +351,71 @@ void Renderer::Setup()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
     glBindVertexArray(0);
+
+    glGenTextures(1, &prefilterMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
+    for (unsigned int i = 0; i < 6; ++i) {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 128, 128, 0, GL_RGB, GL_FLOAT, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+    auto prefilterShader = Shader();
+    prefilterShader.Load("../Shaders/skybox2.vs", "../Shaders/prefilter.fs");
+    prefilterShader.setInt("environmentMap", 0);
+    prefilterShader.setMat4("projection", captureProjection);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    unsigned int maxMipLevels = 5;
+    for (unsigned int mip = 0; mip < maxMipLevels; ++mip) {
+        unsigned int mipWidth = 128 * std::pow(0.5, mip);
+        unsigned int mipHeight = 128 * std::pow(0.5, mip);
+        glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
+        glViewport(0, 0, mipWidth, mipHeight);
+
+        float roughness = (float)mip / (float)(maxMipLevels - 1);
+        prefilterShader.setFloat("roughness", roughness);
+        for (unsigned int i = 0; i < 6; ++i) {
+            prefilterShader.setMat4("view", captureViews[i]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            renderCube();
+        }
+    }
+
+    glGenTextures(1, &brdfLUTTexture);
+    
+    // Pre-allocate enough memory for the LUT texture
+    glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 512, 512, 0, GL_RG, GL_FLOAT, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture, 0);
+
+    glViewport(0, 0, 512, 512);
+    auto brdfShader = Shader();
+    brdfShader.Load("../Shaders/BRDFIntegration.vs", "../Shaders/BRDFIntegration.fs");
+
+    brdfShader.use();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    renderQuad();
+
+    glViewport(0, 0, 800, 600); // reset viewport
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
 }
@@ -540,6 +638,9 @@ void Renderer::Render(Scene& scene)
     shader.setInt("roughnessMap", 3);
     shader.setInt("aoMap", 4);
     shader.setInt("irradianceMap", 5);
+    shader.setInt("prefilterMap", 6);
+    shader.setInt("brdfLUT", 7);
+
 
     shader.setMat4("projection", projection);
     view = scene.MainCamera.GetViewMatrix();
@@ -563,6 +664,12 @@ void Renderer::Render(Scene& scene)
 
     glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
+
+    glActiveTexture(GL_TEXTURE7);
+    glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
 
 
     // Render Spheres
@@ -626,16 +733,10 @@ void Renderer::Render(Scene& scene)
         entity.Draw(OutlineShader);
     }
 
-            glStencilFunc(GL_ALWAYS, 1, 0xFF);
-            glStencilMask(0xFF);
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glStencilMask(0xFF);
                 
-        */
-
-     
-    
-   
-
-   
+    */
 
     
     // 4. draw result to screen
